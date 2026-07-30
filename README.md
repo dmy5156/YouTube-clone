@@ -2,6 +2,8 @@
 
 Production-oriented Express + TypeScript backend for a YouTube Studio clone. The frontend reads this API only; YouTube Data API v3 and YouTube Analytics API calls are isolated to Inngest background jobs.
 
+For the full backend and frontend implementation flow, see [`docs/IMPLEMENTATION_FLOW.md`](docs/IMPLEMENTATION_FLOW.md).
+
 ## Architecture
 
 - Express exposes REST routes for auth, dashboards, video details, health checks, and Inngest webhooks.
