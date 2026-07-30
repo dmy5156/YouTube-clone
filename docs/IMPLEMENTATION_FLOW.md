@@ -389,3 +389,52 @@ export async function getVideo(videoId: string) {
 - Add integration tests for dashboard/video routes.
 - Add rate limiting to public API routes.
 - Add database migration SQL generated from Prisma rather than the current placeholder migration stub.
+
+## Updated login and dashboard contract
+
+### First login
+
+1. The OAuth callback exchanges the Google authorization code for tokens.
+2. The backend fetches the authenticated Google profile to create or update the local `User`.
+3. The backend immediately calls `channels.list?mine=true` server-side, stores the channel metadata/statistics, and returns `{ user, channel, isFirstLogin: true, sync: "started" }` to the frontend.
+4. The expensive work (uploads playlist pagination, batched `videos.list`, playlist mappings, historical channel analytics, and historical video analytics) is queued with the `channel/full-sync` Inngest event and runs in the background.
+5. The frontend can route directly to a dashboard shell using the returned channel metadata while showing sync-progress placeholders for charts/videos until background rows arrive.
+
+### Returning login
+
+1. If the user's channel has `lastSyncedAt` on the current UTC day, the OAuth callback returns the existing PostgreSQL channel data without calling YouTube data endpoints again.
+2. If `lastSyncedAt` is missing or from a previous UTC day, the server refreshes channel metadata/statistics and detects newly uploaded videos from the uploads playlist before returning.
+3. The server then queues `channel/daily-sync` so channel/video analytics deltas are filled and upserted asynchronously.
+
+### Dashboard response shape
+
+`GET /api/dashboard?channelId=...` intentionally returns only the data required by the dashboard landing page:
+
+- `channel`: channel metadata, current statistics, and sync state.
+- `analyticsLast30Days`: exactly the stored daily channel analytics rows for the last 30 UTC days.
+- `topPerformanceVideos`: the top 10 videos by stored view count.
+- `latestVideos`: the latest 10 videos by publish date.
+
+This keeps the first dashboard payload small even for channels with millions of videos.
+
+### Videos screen response shape
+
+`GET /api/videos?channelId=...&limit=25&cursor=...` returns a cursor-paginated list:
+
+```json
+{
+  "videos": [],
+  "pageInfo": {
+    "hasNextPage": true,
+    "nextCursor": "video_table_id"
+  }
+}
+```
+
+The frontend should request the next page with `cursor=pageInfo.nextCursor`, render rows with virtualization for large libraries, and never request all videos at once.
+
+### Internet/API references used for this design
+
+- Google documents that `videos.list` accepts up to 50 items per request, which is why video metadata is batched instead of fetched one by one.
+- Google documents that YouTube Analytics `reports.query` takes channel/content-owner IDs, date ranges, metrics, dimensions, and filters, which matches the server-side dashboard and video analytics ingestion model.
+- Collection reads use page-token pagination because YouTube list endpoints return bounded pages rather than complete large collections in one response.

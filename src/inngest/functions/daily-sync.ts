@@ -12,10 +12,14 @@ const VIDEO_ANALYTICS_CHUNK_SIZE = 25;
 
 export const dailyIncrementalSync = inngest.createFunction(
   { id: "DailyIncrementalSync", name: "DailyIncrementalSync" },
-  { cron: "0 3 * * *" },
-  async ({ step }) => {
+  [{ cron: "0 3 * * *" }, { event: "channel/daily-sync" }],
+  async ({ event, step }) => {
+    const requestedChannelId = typeof event.data?.channelId === "string" ? event.data.channelId : undefined;
     const channels = await step.run("load-channels", () =>
-      prisma.channel.findMany({ include: { user: { include: { tokens: true } }, videos: true } }),
+      prisma.channel.findMany({
+        where: requestedChannelId ? { id: requestedChannelId } : undefined,
+        include: { user: { include: { tokens: true } }, videos: true },
+      }),
     );
 
     for (const [channelChunkIndex, channelChunk] of chunkArray(channels, CHANNEL_SYNC_CHUNK_SIZE).entries()) {
