@@ -1,0 +1,59 @@
+export interface OAuthTokens {
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt: Date;
+  scopes: string[];
+}
+
+export interface YouTubeChannel {
+  id: string;
+  title: string;
+  description?: string;
+  customUrl?: string;
+  publishedAt?: Date;
+  uploadsPlaylistId?: string;
+  thumbnailUrl?: string;
+  country?: string;
+  branding?: unknown;
+  statistics: {
+    viewCount: bigint;
+    subscriberCount: bigint;
+    hiddenSubscriberCount: boolean;
+    videoCount: bigint;
+  };
+}
+
+export interface YouTubeVideo {
+  id: string;
+  title: string;
+  description?: string;
+  publishedAt?: Date;
+  duration?: string;
+  definition?: string;
+  dimension?: string;
+  caption: boolean;
+  licensedContent: boolean;
+  privacyStatus?: string;
+  uploadStatus?: string;
+  tags: string[];
+  thumbnails?: unknown;
+  categoryId?: string;
+  statistics: {
+    viewCount: bigint;
+    likeCount: bigint;
+    commentCount: bigint;
+    favoriteCount: bigint;
+  };
+}
+
+export interface AnalyticsRow {
+  day: string;
+  views: bigint;
+  likes: bigint;
+  comments: bigint;
+  watchTime: bigint;
+  averageViewDuration: bigint;
+  estimatedRevenue: string;
+  subscribersGained: bigint;
+  subscribersLost: bigint;
+}
